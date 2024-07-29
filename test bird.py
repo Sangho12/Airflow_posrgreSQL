@@ -143,15 +143,35 @@ t8 = SQLExecuteQueryOperator(
     task_id='union_table_new',
     conn_id='test',
     sql='''
-CREATE TABLE IF NOT EXISTS U_birds AS
-SELECT 
-    COALESCE(birds.bird_name, birds2.bird_name) AS bird_name, 
-    COALESCE(birds.observation_year, birds2.observation_year) AS observation_year,
-    COALESCE(birds.bird_happiness, birds2.bird_happiness) AS bird_happiness
-FROM birds
-FULL OUTER JOIN birds2
-ON birds.bird_name = birds2.bird_name AND birds.observation_year = birds2.observation_year;
-
+        CREATE TABLE IF NOT EXISTS U_birds AS
+        SELECT 
+            COALESCE(bird_name_1, bird_name_2, 'test_name') AS bird_name, 
+            COALESCE(observation_year_1, observation_year_2) AS observation_year,
+            COALESCE(bird_happiness_1, bird_happiness_2) AS bird_happiness
+        FROM (
+            SELECT 
+                bird_name AS bird_name_1, 
+                observation_year AS observation_year_1, 
+                bird_happiness AS bird_happiness_1,
+                NULL AS bird_name_2, 
+                NULL AS observation_year_2, 
+                NULL AS bird_happiness_2
+            FROM birds
+            UNION ALL
+            SELECT 
+                NULL AS bird_name_1, 
+                NULL AS observation_year_1, 
+                NULL AS bird_happiness_1,
+                CASE 
+                    WHEN observation_year = 2019 AND bird_happiness = 8 THEN 'test_name'
+                    ELSE bird_name 
+                END AS bird_name_2,
+                observation_year AS observation_year_2, 
+                bird_happiness AS bird_happiness_2
+            FROM birds2
+        ) subquery
+        WHERE NOT (bird_name_1 IS NULL AND observation_year_1 IS NULL AND bird_happiness_1 IS NULL)
+        OR NOT (bird_name_2 IS NULL AND observation_year_2 IS NULL AND bird_happiness_2 IS NULL)
     ''',
 )
 
